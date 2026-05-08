@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude POS</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🏪</span>
+      <span class="logo-text">Claude POS</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" class="nav-link active" data-page="pos"><span>🛒</span> Point of Sale</a></li>
+      <li><a href="#" class="nav-link" data-page="products"><span>📦</span> Products</a></li>
+      <li><a href="#" class="nav-link" data-page="categories"><span>🏷️</span> Categories</a></li>
+      <li><a href="#" class="nav-link" data-page="customers"><span>👥</span> Customers</a></li>
+      <li><a href="#" class="nav-link" data-page="orders"><span>📋</span> Orders</a></li>
+      <li><a href="#" class="nav-link" data-page="reports"><span>📊</span> Reports</a></li>
+      <li><a href="#" class="nav-link" data-page="settings"><span>⚙️</span> Settings</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- ===== POS PAGE ===== -->
+    <div id="page-pos" class="page active">
+      <div class="pos-layout">
+        <!-- Product Grid -->
+        <div class="pos-left">
+          <div class="pos-toolbar">
+            <input type="text" id="pos-search" class="search-input" placeholder="Search products or scan barcode..." />
+            <select id="pos-category-filter" class="select-input">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+          <div id="pos-products" class="product-grid"></div>
+        </div>
+
+        <!-- Cart -->
+        <div class="pos-right">
+          <div class="cart-header">
+            <h2>Current Order</h2>
+            <div class="cart-actions">
+              <select id="cart-customer" class="select-input small">
+                <option value="">Walk-in Customer</option>
+              </select>
+              <button class="btn btn-danger btn-sm" onclick="clearCart()">Clear</button>
+            </div>
+          </div>
+          <div id="cart-items" class="cart-items"></div>
+          <div class="cart-summary">
+            <div class="summary-row">
+              <span>Subtotal</span>
+              <span id="cart-subtotal">$0.00</span>
+            </div>
+            <div class="summary-row">
+              <span>Discount</span>
+              <span class="discount-input-wrap">
+                $<input type="number" id="cart-discount" value="0" min="0" step="0.01" class="inline-input" oninput="updateCartTotals()" />
+              </span>
+            </div>
+            <div class="summary-row">
+              <span>Tax (<span id="tax-rate-label">8%</span>)</span>
+              <span id="cart-tax">$0.00</span>
+            </div>
+            <div class="summary-row total-row">
+              <span>Total</span>
+              <span id="cart-total">$0.00</span>
+            </div>
+            <div class="payment-section">
+              <div class="payment-methods">
+                <label class="payment-method active" data-method="cash">
+                  <input type="radio" name="payment_method" value="cash" checked hidden />💵 Cash
+                </label>
+                <label class="payment-method" data-method="card">
+                  <input type="radio" name="payment_method" value="card" hidden />💳 Card
+                </label>
+                <label class="payment-method" data-method="mobile">
+                  <input type="radio" name="payment_method" value="mobile" hidden />📱 Mobile
+                </label>
+              </div>
+              <div id="cash-fields">
+                <label class="form-label">Amount Tendered</label>
+                <input type="number" id="amount-tendered" class="input full-width" placeholder="0.00" min="0" step="0.01" oninput="updateChange()" />
+                <div class="summary-row mt-sm">
+                  <span>Change</span>
+                  <span id="change-due" class="change-amount">$0.00</span>
+                </div>
+              </div>
+              <input type="text" id="cart-notes" class="input full-width mt-sm" placeholder="Order notes (optional)" />
+              <button class="btn btn-success btn-lg full-width mt-sm" onclick="checkout()">
+                Checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PRODUCTS PAGE ===== -->
+    <div id="page-products" class="page">
+      <div class="page-header">
+        <h1>Products</h1>
+        <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="product-search" class="search-input" placeholder="Search products..." oninput="loadProducts()" />
+        <select id="product-category-filter" class="select-input" onchange="loadProducts()">
+          <option value="">All Categories</option>
+        </select>
+        <label class="checkbox-label">
+          <input type="checkbox" id="show-low-stock" onchange="loadProducts()" /> Low stock only
+        </label>
+      </div>
+      <div class="table-container">
+        <table class="table" id="products-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>SKU</th><th>Category</th><th>Price</th><th>Cost</th><th>Stock</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== CATEGORIES PAGE ===== -->
+    <div id="page-categories" class="page">
+      <div class="page-header">
+        <h1>Categories</h1>
+        <button class="btn btn-primary" onclick="openCategoryModal()">+ Add Category</button>
+      </div>
+      <div class="table-container">
+        <table class="table">
+          <thead><tr><th>Name</th><th>Description</th><th>Products</th><th>Actions</th></tr></thead>
+          <tbody id="categories-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== CUSTOMERS PAGE ===== -->
+    <div id="page-customers" class="page">
+      <div class="page-header">
+        <h1>Customers</h1>
+        <button class="btn btn-primary" onclick="openCustomerModal()">+ Add Customer</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="customer-search" class="search-input" placeholder="Search customers..." oninput="loadCustomers()" />
+      </div>
+      <div class="table-container">
+        <table class="table">
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Orders</th><th>Total Spent</th><th>Points</th><th>Actions</th></tr></thead>
+          <tbody id="customers-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== ORDERS PAGE ===== -->
+    <div id="page-orders" class="page">
+      <div class="page-header">
+        <h1>Orders</h1>
+      </div>
+      <div class="toolbar">
+        <select id="order-status-filter" class="select-input" onchange="loadOrders()">
+          <option value="">All Statuses</option>
+          <option value="completed">Completed</option>
+          <option value="refunded">Refunded</option>
+          <option value="voided">Voided</option>
+          <option value="pending">Pending</option>
+        </select>
+        <select id="order-payment-filter" class="select-input" onchange="loadOrders()">
+          <option value="">All Payment Methods</option>
+          <option value="cash">Cash</option>
+          <option value="card">Card</option>
+          <option value="mobile">Mobile</option>
+        </select>
+        <input type="date" id="order-from" class="input" onchange="loadOrders()" />
+        <input type="date" id="order-to" class="input" onchange="loadOrders()" />
+      </div>
+      <div class="table-container">
+        <table class="table">
+          <thead><tr><th>Order #</th><th>Customer</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== REPORTS PAGE ===== -->
+    <div id="page-reports" class="page">
+      <div class="page-header">
+        <h1>Reports</h1>
+        <div class="report-filters">
+          <input type="date" id="report-from" class="input" />
+          <input type="date" id="report-to" class="input" />
+          <button class="btn btn-primary" onclick="loadReports()">Generate</button>
+        </div>
+      </div>
+      <div id="dashboard-kpis" class="kpi-grid"></div>
+      <div class="report-grid">
+        <div class="card">
+          <h3>Sales by Period</h3>
+          <div id="sales-by-period"></div>
+        </div>
+        <div class="card">
+          <h3>Payment Methods</h3>
+          <div id="payment-breakdown"></div>
+        </div>
+        <div class="card">
+          <h3>Top Products</h3>
+          <div id="top-products"></div>
+        </div>
+        <div class="card">
+          <h3>Inventory Alerts</h3>
+          <div id="low-stock-report"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SETTINGS PAGE ===== -->
+    <div id="page-settings" class="page">
+      <div class="page-header"><h1>Settings</h1></div>
+      <div class="card settings-card">
+        <h3>Store Information</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Store Name</label>
+            <input type="text" id="setting-store_name" class="input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="text" id="setting-store_phone" class="input" />
+          </div>
+          <div class="form-group full-col">
+            <label class="form-label">Address</label>
+            <input type="text" id="setting-store_address" class="input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Currency Symbol</label>
+            <input type="text" id="setting-currency_symbol" class="input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tax Rate (e.g. 0.08 for 8%)</label>
+            <input type="number" id="setting-tax_rate" class="input" step="0.001" />
+          </div>
+          <div class="form-group full-col">
+            <label class="form-label">Receipt Footer</label>
+            <input type="text" id="setting-receipt_footer" class="input" />
+          </div>
+        </div>
+        <button class="btn btn-primary mt-sm" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== MODALS ===== -->
+
+  <!-- Product Modal -->
+  <div id="product-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="product-modal-title">Add Product</h2>
+        <button class="modal-close" onclick="closeModal('product-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="product-id" />
+        <div class="form-grid">
+          <div class="form-group full-col">
+            <label class="form-label">Name *</label>
+            <input type="text" id="product-name" class="input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">SKU</label>
+            <input type="text" id="product-sku" class="input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Barcode</label>
+            <input type="text" id="product-barcode" class="input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select id="product-category" class="select-input"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Price *</label>
+            <input type="number" id="product-price" class="input" min="0" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cost</label>
+            <input type="number" id="product-cost" class="input" min="0" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stock</label>
+            <input type="number" id="product-stock" class="input" min="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Low Stock Alert</label>
+            <input type="number" id="product-low-stock" class="input" min="0" value="5" />
+          </div>
+          <div class="form-group full-col">
+            <label class="form-label">Description</label>
+            <input type="text" id="product-description" class="input" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('product-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveProduct()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Modal -->
+  <div id="category-modal" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="category-modal-title">Add Category</h2>
+        <button class="modal-close" onclick="closeModal('category-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="category-id" />
+        <div class="form-group">
+          <label class="form-label">Name *</label>
+          <input type="text" id="category-name" class="input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" id="category-description" class="input" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('category-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCategory()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Modal -->
+  <div id="customer-modal" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="customer-modal-title">Add Customer</h2>
+        <button class="modal-close" onclick="closeModal('customer-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="customer-id" />
+        <div class="form-group">
+          <label class="form-label">Name *</label>
+          <input type="text" id="customer-name" class="input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="customer-email" class="input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input type="text" id="customer-phone" class="input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Address</label>
+          <input type="text" id="customer-address" class="input" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('customer-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCustomer()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Receipt Modal -->
+  <div id="receipt-modal" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Receipt</h2>
+        <button class="modal-close" onclick="closeModal('receipt-modal')">✕</button>
+      </div>
+      <div id="receipt-content" class="receipt"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('receipt-modal')">Close</button>
+        <button class="btn btn-primary" onclick="window.print()">Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Detail Modal -->
+  <div id="order-detail-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="order-detail-title">Order Details</h2>
+        <button class="modal-close" onclick="closeModal('order-detail-modal')">✕</button>
+      </div>
+      <div id="order-detail-content" class="modal-body"></div>
+      <div class="modal-footer" id="order-detail-actions"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
