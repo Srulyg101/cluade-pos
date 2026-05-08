@@ -11,7 +11,7 @@ const settingsRouter = require('./src/routes/settings');
 const errorHandler = require('./src/middleware/errorHandler');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3008;
 
 app.use(cors());
 app.use(express.json());
