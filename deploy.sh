@@ -40,14 +40,22 @@ pm2 delete pos 2>/dev/null || true
 # Start app
 echo "▶️  Starting POS server..."
 pm2 start server.js --name pos --restart-delay=3000
+
+# Start admin API
+pm2 stop admin-api 2>/dev/null || true
+pm2 delete admin-api 2>/dev/null || true
+pm2 start admin-api.js --name admin-api
+
 pm2 save
 pm2 startup | tail -1 | bash 2>/dev/null || true
 
 # Firewall
 ufw allow 3000 2>/dev/null || true
+ufw allow 4000 2>/dev/null || true
 
 echo ""
 echo "✅ Deployment complete!"
-echo "🌐 Your POS is live at: http://92.242.187.95:3000"
+echo "🌐 POS live at:       http://92.242.187.95:3000"
+echo "🔧 Admin API live at: http://92.242.187.95:4000"
 echo ""
 pm2 status
