@@ -53,6 +53,7 @@ export function getDb(): Database.Database {
     ['store_vfx_address', ''],
     ['store_btc_address', ''],
     ['store_usdc_address', ''],
+    ['stripe_account_id', ''],
     ['vfx_usd_rate', '0.10'],
     ['btc_usd_rate', '65000'],
     ['tax_rate', '0'],

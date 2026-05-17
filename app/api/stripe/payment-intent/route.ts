@@ -22,6 +22,7 @@ export async function POST(req: Request) {
 
   const vfxRate = parseFloat(getSetting('vfx_usd_rate') ?? '0.10');
   const btcRate = parseFloat(getSetting('btc_usd_rate') ?? '65000');
+  const accountId = getSetting('stripe_account_id') ?? '';
   const total_vfx = usdToVfx(finalTotal, vfxRate);
   const total_btc = usdToBtcSatoshis(finalTotal, btcRate);
 
@@ -37,16 +38,20 @@ export async function POST(req: Request) {
   });
   const orderId = Number(orderResult.lastInsertRowid);
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: amountCents,
-    currency: 'usd',
-    automatic_payment_methods: { enabled: true },
-    metadata: {
-      order_id: String(orderId),
-      tip_usd: String(tip_usd),
-      discount_usd: String(discount_usd),
+  const piOptions = accountId ? { stripeAccount: accountId } : undefined;
+  const paymentIntent = await stripe.paymentIntents.create(
+    {
+      amount: amountCents,
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+      metadata: {
+        order_id: String(orderId),
+        tip_usd: String(tip_usd),
+        discount_usd: String(discount_usd),
+      },
     },
-  });
+    piOptions
+  );
 
   // Decrement stock
   for (const item of items) {

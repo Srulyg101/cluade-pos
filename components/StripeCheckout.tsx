@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '');
 
 function PaymentForm({
   onSuccess,
@@ -89,11 +87,28 @@ function PaymentForm({
 interface StripeCheckoutProps {
   clientSecret: string;
   totalUsd: number;
+  stripeAccount?: string;
   onSuccess: (paymentIntentId: string) => void;
   onCancel: () => void;
 }
 
-export default function StripeCheckout({ clientSecret, totalUsd, onSuccess, onCancel }: StripeCheckoutProps) {
+export default function StripeCheckout({
+  clientSecret,
+  totalUsd,
+  stripeAccount,
+  onSuccess,
+  onCancel,
+}: StripeCheckoutProps) {
+  // Re-initialize Stripe.js when the connected account changes
+  const stripePromise = useMemo(
+    () =>
+      loadStripe(
+        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '',
+        stripeAccount ? { stripeAccount } : {}
+      ),
+    [stripeAccount]
+  );
+
   return (
     <Elements
       stripe={stripePromise}

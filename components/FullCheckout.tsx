@@ -288,6 +288,7 @@ export default function FullCheckout({
             <StripeCheckout
               clientSecret={clientSecret}
               totalUsd={total}
+              stripeAccount={settings.stripe_account_id || undefined}
               onSuccess={handleStripeSuccess}
               onCancel={() => setStep('method')}
             />
