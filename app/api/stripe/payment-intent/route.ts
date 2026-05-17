@@ -39,15 +39,23 @@ export async function POST(req: Request) {
   const orderId = Number(orderResult.lastInsertRowid);
 
   const piOptions = accountId ? { stripeAccount: accountId } : undefined;
+
+  // Platform fee: $0.05 flat + 0.05% of transaction (only applies to connected accounts)
+  const platformFeeFlat = 5; // cents
+  const platformFeePct = Math.round(amountCents * 0.0005); // 0.05%
+  const applicationFeeAmount = accountId ? platformFeeFlat + platformFeePct : undefined;
+
   const paymentIntent = await stripe.paymentIntents.create(
     {
       amount: amountCents,
       currency: 'usd',
       automatic_payment_methods: { enabled: true },
+      ...(applicationFeeAmount !== undefined && { application_fee_amount: applicationFeeAmount }),
       metadata: {
         order_id: String(orderId),
         tip_usd: String(tip_usd),
         discount_usd: String(discount_usd),
+        platform_fee_cents: String(applicationFeeAmount ?? 0),
       },
     },
     piOptions
